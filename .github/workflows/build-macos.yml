@@ -3,19 +3,17 @@ name: Build macOS (M-chip + Intel)
 on:
   push:
     branches: [main, master]
-    paths:
-      - 'codex_switcher_macos.py'
-      - '.github/workflows/build-macos.yml'
   workflow_dispatch:
 
 jobs:
   build-macos:
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - runner: macos-14        # Apple Silicon (M1)
+          - runner: macos-14
             suffix: "M芯片"
-          - runner: macos-13        # Intel
+          - runner: macos-13
             suffix: "Intel"
     runs-on: ${{ matrix.runner }}
     steps:
@@ -32,47 +30,26 @@ jobs:
 
       - name: Generate macOS icon
         run: |
-          python3 -c "
-          from PIL import Image, ImageDraw, ImageFont
-          import os
-          iconset_dir = 'icon.iconset'
-          os.makedirs(iconset_dir, exist_ok=True)
-          sizes = [16, 32, 64, 128, 256, 512]
-          for sz in sizes:
-              img = Image.new('RGBA', (sz, sz), (0, 0, 0, 0))
-              draw = ImageDraw.Draw(img)
-              margin = int(sz * 0.05)
-              draw.ellipse([margin, margin, sz - margin, sz - margin], fill=(0x28, 0x60, 0xE1, 255))
-              font_size = int(sz * 0.48)
-              try:
-                  font = ImageFont.truetype('/System/Library/Fonts/Helvetica.ttc', font_size)
-              except:
-                  font = ImageFont.load_default()
-              text = 'SS'
-              bbox = draw.textbbox((0, 0), text, font=font)
-              tw = bbox[2] - bbox[0]
-              th = bbox[3] - bbox[1]
-              x = (sz - tw) // 2 - bbox[0]
-              y = int(sz * 0.66) - th - bbox[1]
-              draw.text((x, y), text, fill=(255, 255, 255, 255), font=font)
-              img.save(os.path.join(iconset_dir, f'icon_{sz}x{sz}.png'))
-              if sz <= 256:
-                  img2 = img.resize((sz * 2, sz * 2), Image.LANCZOS)
-                  img2.save(os.path.join(iconset_dir, f'icon_{sz}x{sz}@2x.png'))
-          "
+          python3 generate_icon.py
           iconutil -c icns icon.iconset -o susu_icon.icns
+          ls -la susu_icon.icns
 
       - name: Build with PyInstaller
         run: |
           pyinstaller \
             --onefile \
             --windowed \
-            --name "苏苏全能中转站一键切换v1.1-${{ matrix.suffix }}" \
+            --name "CodexSwitcher-${{ matrix.suffix }}" \
             --icon susu_icon.icns \
             --distpath dist \
             --workpath build \
             --specpath . \
             codex_switcher_macos.py
+
+      - name: List output
+        run: |
+          ls -la dist/
+          find dist/ -type f -name "*.app" -o -name "*.app/*" | head -20
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
