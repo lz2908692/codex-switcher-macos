@@ -25,6 +25,8 @@ jobs:
           pip install pyinstaller pillow
 
       - name: Generate macOS icon
+        id: icon
+        continue-on-error: true
         run: |
           python3 generate_icon.py
           iconutil -c icns icon.iconset -o susu_icon.icns
@@ -32,11 +34,15 @@ jobs:
 
       - name: Build ARM64 (M-chip) version
         run: |
+          ICON_ARG=""
+          if [ -f "susu_icon.icns" ]; then
+            ICON_ARG="--icon susu_icon.icns"
+          fi
           pyinstaller \
             --onefile \
             --windowed \
             --name "CodexSwitcher-M-chip" \
-            --icon susu_icon.icns \
+            $ICON_ARG \
             --distpath dist-arm64 \
             --workpath build-arm64 \
             --specpath . \
@@ -56,11 +62,15 @@ jobs:
 
       - name: Build x86_64 (Intel) version
         run: |
+          ICON_ARG=""
+          if [ -f "susu_icon.icns" ]; then
+            ICON_ARG="--icon susu_icon.icns"
+          fi
           arch -x86_64 x86_venv/bin/python -m PyInstaller \
             --onefile \
             --windowed \
             --name "CodexSwitcher-Intel" \
-            --icon susu_icon.icns \
+            $ICON_ARG \
             --distpath dist-x86_64 \
             --workpath build-x86_64 \
             --specpath . \
