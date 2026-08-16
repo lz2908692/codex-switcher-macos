@@ -12,7 +12,7 @@ jobs:
       matrix:
         include:
           - runner: macos-14
-            suffix: "M芯片"
+            suffix: "M-chip"
           - runner: macos-13
             suffix: "Intel"
     runs-on: ${{ matrix.runner }}
@@ -29,18 +29,25 @@ jobs:
           pip install pyinstaller pillow
 
       - name: Generate macOS icon
+        id: icon
+        continue-on-error: true
         run: |
           python3 generate_icon.py
           iconutil -c icns icon.iconset -o susu_icon.icns
           ls -la susu_icon.icns
+          echo "icon_file=susu_icon.icns" >> $GITHUB_OUTPUT
 
       - name: Build with PyInstaller
         run: |
+          ICON_ARG=""
+          if [ -f "susu_icon.icns" ]; then
+            ICON_ARG="--icon susu_icon.icns"
+          fi
           pyinstaller \
             --onefile \
             --windowed \
             --name "CodexSwitcher-${{ matrix.suffix }}" \
-            --icon susu_icon.icns \
+            $ICON_ARG \
             --distpath dist \
             --workpath build \
             --specpath . \
@@ -49,7 +56,7 @@ jobs:
       - name: List output
         run: |
           ls -la dist/
-          find dist/ -type f -name "*.app" -o -name "*.app/*" | head -20
+          find dist/ -type f | head -20
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

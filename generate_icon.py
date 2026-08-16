@@ -34,7 +34,11 @@ for sz in sizes:
     # Save normal and @2x
     img.save(os.path.join(iconset_dir, "icon_%dx%d.png" % (sz, sz)))
     if sz <= 256:
-        img2 = img.resize((sz * 2, sz * 2), Image.LANCZOS)
+        try:
+            resample = Image.Resampling.LANCZOS
+        except AttributeError:
+            resample = Image.LANCZOS
+        img2 = img.resize((sz * 2, sz * 2), resample)
         img2.save(os.path.join(iconset_dir, "icon_%dx%d@2x.png" % (sz, sz)))
 
 print("Icon PNGs generated in %s" % iconset_dir)
